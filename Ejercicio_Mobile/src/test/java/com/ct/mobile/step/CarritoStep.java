@@ -2,40 +2,58 @@ package com.ct.mobile.step;
 
 import com.ct.mobile.config.MobileDriverManager;
 import com.ct.mobile.view.CarritoView;
-import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Assertions;
 
 /**
- * Lógica de pasos relacionados con el carrito de compras.
- * Coordina las validaciones entre la vista (CarritoView) y los valores esperados.
+ * Clase que gestiona las acciones y validaciones del carrito de compras.
+ * Representa la “lógica” de negocio dentro del flujo del test.
  */
 public class CarritoStep {
 
-    private int totalEsperado;
+    private int totalEsperado = 0;  // Acumula el total de productos añadidos por el usuario
 
-    /** Suma al total esperado (lo que el usuario agregó). */
+    /**
+     * Acumula las unidades que el usuario ha agregado al carrito.
+     * @param unidades cantidad de productos agregados
+     */
     public void acumular(int unidades) {
         totalEsperado += unidades;
     }
 
-    /** Espera a que el carrito sea visible antes de continuar (para evidencias). */
+    /**
+     * Espera a que la vista del carrito sea visible antes de continuar.
+     * Útil para evidencias o sincronización con la UI.
+     */
     public void mostrarVistaCarrito() {
-        new CarritoView(MobileDriverManager.getDriver()).esperarCarritoVisible();
-        System.out.println("🛒 Vista del carrito lista para captura.");
+        CarritoView view = new CarritoView(MobileDriverManager.getDriver());
+        view.esperarCarritoVisible();
+        System.out.println("🛍️ Vista del carrito visible y lista para validaciones.");
     }
 
     /**
-     * Compara el contador del carrito (badge) con el total acumulado esperado.
-     * Lanza error si el número mostrado no coincide con los productos agregados.
+     * Valida que el contador del carrito coincida con el total de productos agregados.
+     * Si el contador no coincide, falla el test con un mensaje claro.
      */
-    public void validarContadorCarrito() {
+    public void validarContadorCarrito() throws InterruptedException {
         CarritoView view = new CarritoView(MobileDriverManager.getDriver());
-        boolean ok = view.esperarBadgeIgualA(totalEsperado);
-        int actual = view.obtenerContador();
 
-        Assertions.assertThat(ok)
-                .as("El badge del carrito debería mostrar %s pero muestra %s", totalEsperado, actual)
-                .isTrue();
+        // Espera breve para asegurar que la UI refleje el cambio visual (badge actualizado)
+        Thread.sleep(800);
 
-        System.out.println("El carrito refleja correctamente " + actual + " productos añadidos.");
+        boolean ok = view.esperarBadgeIgualA(totalEsperado);  // compara badge actual con el total esperado
+        int actual = view.obtenerContadorCarrito();
+
+        Assertions.assertTrue(ok, "❌ El contador del carrito no coincide con lo esperado. Esperado: " 
+                + totalEsperado + ", Actual: " + actual);
+        System.out.println("✅ Contador verificado: el carrito refleja " + actual + " producto(s) correctamente.");
+    }
+
+    /**
+     * Alias para compatibilidad con el Glue (CarritoStepDef).
+     * Permite mantener el nombre assertCartUpdated() en el código de pasos.
+     */
+    public void assertCartUpdated() throws InterruptedException {
+        validarContadorCarrito();
     }
 }
+
