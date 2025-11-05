@@ -5,8 +5,8 @@ import com.ct.mobile.view.CarritoView;
 import org.assertj.core.api.Assertions;
 
 /**
- * Mantiene un conteo simple de lo que agregamos para contrastarlo con el badge.
- * No usa sleep; confía en esperas explícitas de la View.
+ * Lógica de pasos relacionados con el carrito de compras.
+ * Coordina las validaciones entre la vista (CarritoView) y los valores esperados.
  */
 public class CarritoStep {
 
@@ -17,22 +17,25 @@ public class CarritoStep {
         totalEsperado += unidades;
     }
 
-    /** Espera una vista válida del carrito (o el badge) para evidencias. */
+    /** Espera a que el carrito sea visible antes de continuar (para evidencias). */
     public void mostrarVistaCarrito() {
         new CarritoView(MobileDriverManager.getDriver()).esperarCarritoVisible();
-        System.out.println("Vista del carrito lista para captura.");
+        System.out.println("🛒 Vista del carrito lista para captura.");
     }
 
-    /** Compara el badge del carrito contra el total acumulado. */
+    /**
+     * Compara el contador del carrito (badge) con el total acumulado esperado.
+     * Lanza error si el número mostrado no coincide con los productos agregados.
+     */
     public void validarContadorCarrito() {
         CarritoView view = new CarritoView(MobileDriverManager.getDriver());
         boolean ok = view.esperarBadgeIgualA(totalEsperado);
-        int actual = view.obtenerContadorBadge();
+        int actual = view.obtenerContador();
 
-        Assertions.assertThat(ok && actual == totalEsperado)
-                .as("El contador no coincide. Esperado: " + totalEsperado + " | Actual: " + actual)
+        Assertions.assertThat(ok)
+                .as("El badge del carrito debería mostrar %s pero muestra %s", totalEsperado, actual)
                 .isTrue();
 
-        System.out.println("Contador correcto: " + actual + " artículo(s).");
+        System.out.println("El carrito refleja correctamente " + actual + " productos añadidos.");
     }
 }

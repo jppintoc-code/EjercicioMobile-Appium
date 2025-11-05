@@ -8,30 +8,24 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-
 import java.time.Duration;
 
 /**
- * Representa la vista del carrito dentro de la app de SauceLabs.
- * Aquí se declaran los elementos y acciones que se pueden realizar
- * en la pantalla del carrito (por ejemplo: validar productos, totales, etc.)
+ * Representa la vista del carrito de compras dentro de la app.
+ * Contiene los elementos visuales y acciones para validar su estado.
  */
 public class CarritoView {
 
     private final AppiumDriver driver;
 
-    // 🛒 Identificador visual del carrito (por ejemplo, el título o nombre del producto en el carrito)
+    // Elementos principales del carrito
     @AndroidFindBy(id = "com.saucelabs.mydemoapp.android:id/titleTV")
     private WebElement nombreProductoCarrito;
 
-    // 🔢 Contador que muestra cuántos productos hay en el carrito (opcional)
     @AndroidFindBy(id = "com.saucelabs.mydemoapp.android:id/cartIV")
     private WebElement badgeCarrito;
 
-    public CarritoView() {
-        this(MobileDriverManager.getDriver());
-    }
-
+    /** Constructor principal: inicializa la vista del carrito. */
     public CarritoView(AppiumDriver driver) {
         if (driver == null) {
             throw new IllegalStateException("El AppiumDriver es null. Verifica que esté inicializado antes de usar CarritoView.");
@@ -40,33 +34,35 @@ public class CarritoView {
         PageFactory.initElements(new AppiumFieldDecorator(driver, Duration.ofSeconds(10)), this);
     }
 
-    /**
-     * ✅ Valida que la vista del carrito esté visible en pantalla.
-     * @return true si se muestra correctamente el carrito, false si no.
-     */
-    public boolean mostrarVistaCarrito() {
+    /** Espera a que la vista del carrito esté visible. */
+    public void esperarCarritoVisible() {
         try {
-            new WebDriverWait(driver, Duration.ofSeconds(30))
+            new WebDriverWait(driver, Duration.ofSeconds(20))
                     .until(ExpectedConditions.visibilityOf(nombreProductoCarrito));
-            return nombreProductoCarrito.isDisplayed();
         } catch (Exception e) {
+            throw new RuntimeException("No se pudo visualizar el carrito en el tiempo esperado.", e);
+        }
+    }
+
+    /** Espera que el badge del carrito muestre el total esperado. */
+    public boolean esperarBadgeIgualA(int esperado) {
+        try {
+            return new WebDriverWait(driver, Duration.ofSeconds(10))
+                    .until(d -> obtenerContador() == esperado);
+        } catch (Exception e) {
+            System.out.println("El contador del carrito no coincidió con lo esperado dentro del tiempo.");
             return false;
         }
     }
 
-    /**
-     * 🧭 Espera a que el ícono del carrito sea visible.
-     * Esto es útil cuando el flujo regresa al carrito desde otra vista.
-     */
-    public void esperarCarritoVisible() {
-        new WebDriverWait(driver, Duration.ofSeconds(20))
-                .until(ExpectedConditions.visibilityOf(badgeCarrito));
-    }
-
-    /**
-     * 🧩 Devuelve el contador o ícono del carrito para validaciones más detalladas.
-     */
-    public WebElement getBadgeCarrito() {
-        return badgeCarrito;
+    /** Obtiene el valor numérico mostrado en el badge del carrito. */
+    public int obtenerContador() {
+        try {
+            String texto = badgeCarrito.getText().trim();
+            return texto.isEmpty() ? 0 : Integer.parseInt(texto);
+        } catch (Exception e) {
+            System.out.println("No se pudo leer el contador del carrito.");
+            return -1;
+        }
     }
 }
