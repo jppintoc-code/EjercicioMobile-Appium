@@ -8,61 +8,93 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+
 import java.time.Duration;
 
 /**
- * Representa la vista del carrito de compras dentro de la app.
- * Contiene los elementos visuales y acciones para validar su estado.
+ * Elementos y utilidades de la vista del carrito (icono y badge).
+ * NOTA: Los IDs son los de Sauce Labs MyDemoApp:
+ *   - cartIV  : icono del carrito
+ *   - cartTV  : badge (contador)
  */
 public class CarritoView {
 
     private final AppiumDriver driver;
 
-    // Elementos principales del carrito
-    @AndroidFindBy(id = "com.saucelabs.mydemoapp.android:id/titleTV")
-    private WebElement nombreProductoCarrito;
-
+    // Icono del carrito (visible en toolbar)
     @AndroidFindBy(id = "com.saucelabs.mydemoapp.android:id/cartIV")
+    private WebElement iconoCarrito;
+
+    // Badge/contador del carrito
+    @AndroidFindBy(id = "com.saucelabs.mydemoapp.android:id/cartTV")
     private WebElement badgeCarrito;
 
-    /** Constructor principal: inicializa la vista del carrito. */
+    public CarritoView() {
+        this(MobileDriverManager.getDriver());
+    }
+
     public CarritoView(AppiumDriver driver) {
         if (driver == null) {
-            throw new IllegalStateException("El AppiumDriver es null. Verifica que esté inicializado antes de usar CarritoView.");
+            throw new IllegalStateException(
+                    "El AppiumDriver es null. Verifica que esté inicializado antes de usar CarritoView.");
         }
         this.driver = driver;
         PageFactory.initElements(new AppiumFieldDecorator(driver, Duration.ofSeconds(10)), this);
     }
 
-    /** Espera a que la vista del carrito esté visible. */
+    /** Espera a que el icono del carrito esté visible. */
     public void esperarCarritoVisible() {
-        try {
-            new WebDriverWait(driver, Duration.ofSeconds(20))
-                    .until(ExpectedConditions.visibilityOf(nombreProductoCarrito));
-        } catch (Exception e) {
-            throw new RuntimeException("No se pudo visualizar el carrito en el tiempo esperado.", e);
-        }
+        new WebDriverWait(driver, Duration.ofSeconds(15))
+                .until(ExpectedConditions.visibilityOf(iconoCarrito));
     }
 
-    /** Espera que el badge del carrito muestre el total esperado. */
-    public boolean esperarBadgeIgualA(int esperado) {
+    /**
+     * Espera a que el badge muestre exactamente el valor esperado.
+     * Si esperas 0 y el badge no está visible, se considera correcto.
+     */
+    public boolean esperarBadgeIgualA(int totalEsperado) {
         try {
-            return new WebDriverWait(driver, Duration.ofSeconds(10))
-                    .until(d -> obtenerContador() == esperado);
+            // Si esperamos 0 y el badge no se muestra, es válido (la app oculta el badge cuando está en 0)
+            if (totalEsperado == 0) {
+                // Intento breve de visibilidad; si no aparece, devolvemos true
+                try {
+                    new WebDriverWait(driver, Duration.ofSeconds(2))
+                            .until(ExpectedConditions.visibilityOf(badgeCarrito));
+                    // Si se ve, entonces debe decir "0"
+                    return "0".equals(textoSeguro(badgeCarrito));
+                } catch (Exception ignore) {
+                    return true; // no se ve → se asume 0 correcto
+                }
+            }
+
+            // Para >0 esperamos que el badge sea visible y su texto coincida
+            new WebDriverWait(driver, Duration.ofSeconds(10))
+                    .until(ExpectedConditions.visibilityOf(badgeCarrito));
+
+            return String.valueOf(totalEsperado).equals(textoSeguro(badgeCarrito));
         } catch (Exception e) {
-            System.out.println("El contador del carrito no coincidió con lo esperado dentro del tiempo.");
             return false;
         }
     }
 
-    /** Obtiene el valor numérico mostrado en el badge del carrito. */
-    public int obtenerContador() {
+    /** Devuelve el número del badge. Si no hay badge visible, retorna 0. */
+    public int obtenerContadorCarrito() {
         try {
-            String texto = badgeCarrito.getText().trim();
-            return texto.isEmpty() ? 0 : Integer.parseInt(texto);
+            if (badgeCarrito != null && badgeCarrito.isDisplayed()) {
+                String raw = textoSeguro(badgeCarrito);
+                return Integer.parseInt(raw.trim());
+            }
+        } catch (Exception ignore) { }
+        return 0;
+    }
+
+    // ---------- Helpers ----------
+
+    private String textoSeguro(WebElement el) {
+        try {
+            return el.getText() == null ? "" : el.getText();
         } catch (Exception e) {
-            System.out.println("No se pudo leer el contador del carrito.");
-            return -1;
+            return "";
         }
     }
 }
