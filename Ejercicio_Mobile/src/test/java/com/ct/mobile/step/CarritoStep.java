@@ -5,55 +5,44 @@ import com.ct.mobile.view.CarritoView;
 import org.junit.jupiter.api.Assertions;
 
 /**
- * Clase que gestiona las acciones y validaciones del carrito de compras.
- * Representa la “lógica” de negocio dentro del flujo del test.
+ * Acciones y validaciones del carrito.
+ * Mantiene un contador esperado y lo compara con el badge de la app.
  */
 public class CarritoStep {
 
-    private int totalEsperado = 0;  // Acumula el total de productos añadidos por el usuario
+    private int totalEsperado = 0;
 
-    /**
-     * Acumula las unidades que el usuario ha agregado al carrito.
-     * @param unidades cantidad de productos agregados
-     */
+    /** Suma unidades al total esperado (lo que el usuario agregó). */
     public void acumular(int unidades) {
         totalEsperado += unidades;
     }
 
-    /**
-     * Espera a que la vista del carrito sea visible antes de continuar.
-     * Útil para evidencias o sincronización con la UI.
-     */
+    /** Espera que la vista del carrito sea visible (icono/badge) para evidencias. */
     public void mostrarVistaCarrito() {
         CarritoView view = new CarritoView(MobileDriverManager.getDriver());
         view.esperarCarritoVisible();
-        System.out.println("🛍️ Vista del carrito visible y lista para validaciones.");
+        System.out.println("🛒 Carrito visible en pantalla.");
     }
 
-    /**
-     * Valida que el contador del carrito coincida con el total de productos agregados.
-     * Si el contador no coincide, falla el test con un mensaje claro.
-     */
+    /** Valida que el badge del carrito refleje el total esperado. */
     public void validarContadorCarrito() throws InterruptedException {
         CarritoView view = new CarritoView(MobileDriverManager.getDriver());
 
-        // Espera breve para asegurar que la UI refleje el cambio visual (badge actualizado)
+        // Pequeño colchón para que la UI actualice el badge
         Thread.sleep(800);
 
-        boolean ok = view.esperarBadgeIgualA(totalEsperado);  // compara badge actual con el total esperado
+        boolean ok = view.esperarBadgeIgualA(totalEsperado);
         int actual = view.obtenerContadorCarrito();
 
-        Assertions.assertTrue(ok, "❌ El contador del carrito no coincide con lo esperado. Esperado: " 
-                + totalEsperado + ", Actual: " + actual);
-        System.out.println("✅ Contador verificado: el carrito refleja " + actual + " producto(s) correctamente.");
+        Assertions.assertTrue(
+                ok,
+                "❌ El contador del carrito no coincide. Esperado: " + totalEsperado + " | Actual: " + actual
+        );
+        System.out.println("✅ Contador verificado: " + actual + " artículo(s).");
     }
 
-    /**
-     * Alias para compatibilidad con el Glue (CarritoStepDef).
-     * Permite mantener el nombre assertCartUpdated() en el código de pasos.
-     */
+    /** Alias que usa el Glue. */
     public void assertCartUpdated() throws InterruptedException {
         validarContadorCarrito();
     }
 }
-
